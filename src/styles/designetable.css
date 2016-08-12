@@ -1,0 +1,15 @@
+
+.designetable {
+    border-collapse: collapse;
+}
+
+.designetable td {
+    height: 100px;
+    width: 100px;
+    border: 1px solid rgba(0, 0, 0, 1);
+    padding: 0;
+}
+
+.designetable .selected {
+    background: rgba(47, 115, 221, 1);
+}

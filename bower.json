@@ -1,0 +1,28 @@
+{
+    "name": "designetable",
+    "version": "0.0.1",
+    "homepage": "https://github.com/Wujerry/designetable",
+    "authors": [
+        "Jerry Wu"
+    ],
+    "description": "html table for designer",
+    "main": [
+        "dist/designetable.min.js",
+        "dist/designetable.min.css"
+    ],
+    "license": "MIT",
+    "ignore": [
+        "**/.*",
+        "node_modules",
+        "bower_components",
+        "src",
+        "test",
+        "gulpfile.js",
+        "karma.conf.js",
+        "examples"
+    ],
+    "dependencies": {
+    },
+    "devDependencies": {
+    }
+}
