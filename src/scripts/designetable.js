@@ -54,48 +54,87 @@
             let self = this,
                 table = self.element,
                 path = [],
-                addSelectedClass = (el)=> {
-                    el.classList.add(SelectedTD);
+                sameSign = (a, b) => {
+                    return (a ^ b) > -1;
                 },
-                clearSelected = ()=> {
-                    self.element.querySelectorAll(SelectedTDSeletor).forEach(item => item.classList.remove(SelectedTD));
+                transCoordinate = (point, coord) => {
+                    //return coord
+                    return [coord[0] - point[0], point[1] - coord[1]];
+                },
+                reserveCoordinate = (point, coord) => {
+                    //return point
+                    return [point[0] + coord[0], point[1] - coord[1]];
+                },
+                addOne = (n) => {
+                    if (n > -1) {
+                        return ++n;
+                    } else {
+                        return --n;
+                    }
                 },
                 renderPath = (x, y, el) => {
+
+                    let startPoint = [self.startX, self.startY];
                     let prePoint = path[path.length - 1];
-                    let curPoint = [x,y];
+                    let preCoord = transCoordinate(startPoint, prePoint);
+                    let curPoint = [x, y];
+                    let curCoord = transCoordinate(startPoint, curPoint);
+                    let removeRow = () => {
+                        self.removeSelectedClassByPoint(
+                            prePoint,
+                            reserveCoordinate(startPoint, [0, addOne(curCoord[1])])
+                        );
+                    };
+                    let removeColumn = ()=> {
+                        self.removeSelectedClassByPoint(
+                            reserveCoordinate(startPoint, [addOne(curCoord[0]), curCoord[1]]),
+                            reserveCoordinate(startPoint, [preCoord[0], 0])
+                        );
+                    };
+
                     path.push(curPoint);
 
-                    addSelectedClass(el);
+                    //same quadrant
+                    if (sameSign(preCoord[0], curPoint[0]) && sameSign(preCoord[1], curCoord[1])) {
+                        let absPreCoord = preCoord.map(item => Math.abs(item));
+                        let absCurCoord = curCoord.map(item => Math.abs(item));
 
-
-                    let tempEl = el,
-                        count = 0,
-                        flag = true;
-                    if(y - prePoint[1]){
-                        count = x - self.startX;
-                        let flag = count > 0;
-                        count = Math.abs(count);
-                        console.log('x' + count);
-                        while (count) {
-                            tempEl = flag ? tempEl.previousSibling : tempEl.nextSibling;
-                            addSelectedClass(tempEl);
-                            count --;
+                        if (absCurCoord[0] >= absPreCoord[0] && absCurCoord[1] >= absPreCoord[1]) {
+                            self.addSelectedClassByPoint(startPoint, curPoint);
+                        } else if (absCurCoord[0] <= absPreCoord[0] && absCurCoord[1] <= absPreCoord[1]) {
+                            if (preCoord[0] === curCoord[0]) {
+                                removeRow();
+                            } else if (preCoord[1] === curCoord[1]) {
+                                removeColumn();
+                            } else {
+                                removeRow();
+                                removeColumn();
+                            }
+                        } else {
+                            if(absCurCoord[1] < absPreCoord[1]){
+                               removeRow();
+                                self.addSelectedClassByPoint(
+                                    curPoint,
+                                    reserveCoordinate(startPoint,[addOne(preCoord[0]),0])
+                                )
+                            }else{
+                                self.removeSelectedClassByPoint(
+                                    prePoint,
+                                    reserveCoordinate(startPoint,[addOne(curCoord[0]),0])
+                                );
+                                self.addSelectedClassByPoint(
+                                    curPoint,
+                                    reserveCoordinate(startPoint,[0,addOne(preCoord[1])])
+                                );
+                            }
                         }
+
+                    } else {
+                        self.clearSelected();
+                        self.addSelectedClassByPoint(startPoint, curPoint);
                     }
 
-                    if(x - prePoint[0]){
-                        tempEl = el;
-                        count = y - self.startY;
-                        flag = count > 0;
-                        count = Math.abs(count);
-                        console.log('y' + count);
-                        while (count) {
-                            tempEl = flag ? tempEl.parentNode.previousSibling.querySelector('td:nth-child(' + (x + 1) + ')'):
-                                tempEl.parentNode.nextSibling.querySelector('td:nth-child(' + (x + 1) + ')');
-                            addSelectedClass(tempEl);
-                            count --;
-                        }
-                    }
+
                 },
                 mouseMove = e=> {
                     if (e.target.tagName === 'TD') {
@@ -103,20 +142,20 @@
                             lastPath = path[path.length - 1],
                             x = movedTd.cellIndex,
                             y = movedTd.parentElement.rowIndex;
-                        if(lastPath[0] !== x || lastPath[1] !== y){
+                        if (lastPath[0] !== x || lastPath[1] !== y) {
                             renderPath(x, y, movedTd);
                         }
                     }
                 },
                 mousedown = e => {
                     if (e.target.tagName === 'TD') {
-                        clearSelected();
+                        this.clearSelected();
                         let td = e.target;
                         self.startX = td.cellIndex;
                         self.startY = td.parentElement.rowIndex;
                         path.length = 0;
                         path.push([self.startX, self.startY]);
-                        addSelectedClass(td);
+                        self.addSelectedClass(td);
 
                         table.addEventListener('mousemove', mouseMove);
 
@@ -153,6 +192,69 @@
             return new Array(rowNum).fill(0).map(item => '<tr>' + this._createEls('td', colNum).join('') + '</tr>')
         }
 
+        _calPoint(a, b) {
+            return [[Math.min(a[0], b[0]), Math.min(a[1], b[1])],
+                [Math.max(a[0], b[0]), Math.max(a[1], b[1])]
+            ];
+        }
+
+        _handleSelectedClassByPoint(type, a, b) {
+            let handlers = {
+                'add': 'addSelectedClass',
+                'remove': 'removeSelectedClass'
+            };
+            console.log([a, b] + '');
+            let [start,end] = this._calPoint(a, b);
+            console.log([start, end] + '');
+            console.log('----------');
+            let trs = this.getAllRows();
+            for (let i = start[1], ii = end[1] + 1; i < ii; i++) {
+                let tds = this.getAllTdsByRow(trs[i]);
+                for (let j = start[0], jj = end[0] + 1; j < jj; j++) {
+                    this[handlers[type]](tds[j]);
+                }
+            }
+        }
+
+        addSelectedClassByPoint(a, b) {
+            this._handleSelectedClassByPoint('add', a, b);
+        }
+
+        removeSelectedClass(el) {
+            el.classList.remove(SelectedTD);
+        }
+
+        removeSelectedClassByPoint(a, b) {
+            this._handleSelectedClassByPoint('remove', a, b);
+        }
+
+        clearSelected() {
+            this.element.querySelectorAll(SelectedTDSeletor).forEach(item => item.classList.remove(SelectedTD));
+        }
+
+        getPreRowsTd(el, nth) {
+            return el.parentNode.previousSibling.querySelector('td:nth-child(' + (nth + 1) + ')');
+        }
+
+        getNextRowsTd(el, nth) {
+            return el.parentNode.nextSibling.querySelector('td:nth-child(' + (nth + 1) + ')');
+        }
+
+        getRowByIndex(i) {
+            return this.element.querySelectorAll('tr:nth-child(' + i + ')');
+        }
+
+        getAllTdsByRow(tr) {
+            return tr.querySelectorAll('td');
+        }
+
+        getAllRows() {
+            return this.element.querySelectorAll('tr');
+        }
+
+        addSelectedClass(el) {
+            el.classList.add(SelectedTD);
+        }
 
         logOption() {
             console.log(this.options);
@@ -166,7 +268,7 @@
 
 //test
 
-    let dt = new Designetable(null, {rows: 10});
+    let dt = new Designetable(null, {rows: 20, columns: 20});
 
     // qe('body').appendChild(dt.element);
 
