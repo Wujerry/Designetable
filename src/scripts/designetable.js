@@ -11,6 +11,7 @@
         constructor(selector, {
             rows = 5, columns = 5, data = [], renderTo = 'body', cssNameSpace = 'designetable'
         }) {
+            this.id = new Date().getTime() + Math.floor(Math.random() * 1000);
             this.version = '0.0.1';
             this.cssNameSpace = cssNameSpace;
 
@@ -21,7 +22,7 @@
             this.container = qe(renderTo);
 
             this.element = qe(selector);
-
+            this.contextMenu = null;
 
             this.startX = 0;
             this.endX = 0;
@@ -51,6 +52,121 @@
 
 
         _bindEvent() {
+            this._bindSelection();
+            this._bindContextMenu();
+            this._bindDragSize();
+        }
+
+        _bindDragSize() {
+
+        }
+
+        _bindContextMenu() {
+            let self = this;
+            let table = self.element;
+            let config = self._getContextMenuConfig();
+
+            let clickCoords, clickCoordsX, clickCoordsY,
+                menuWidth, menuHeight, windowWidth, windowHeight;
+
+            let clickInsideElement = (e, className) => {
+                var el = e.srcElement || e.target;
+
+                if (el.classList.contains(className)) {
+                    return el;
+                } else {
+                    while (el = el.parentNode) {
+                        if (el.classList && el.classList.contains(className)) {
+                            return el;
+                        }
+                    }
+                }
+                return false;
+            };
+
+            let createTemplate = ()=> {
+                let i = 0;
+                return config.reduce((pre, cur)=> {
+                    let child = '';
+                    if (cur.children) {
+                        let ic = 0;
+                        child = '<ul class="child-ul">' +
+                            cur.children.reduce((preC, curC)=> {
+                                return preC + `<li data-i="${i}" data-ic="${ic++}">${curC.name}</li>`
+                            }, '')
+                            + '</ul>'
+                    }
+                    return pre + `<li data-i="${i++}" class="context-li">${cur.name}${child}</li>`;
+                }, '');
+            };
+
+
+            let positionMenu = (e)=> {
+                let menu = self.contextMenu;
+                clickCoords = self.getPosition(e);
+                clickCoordsX = clickCoords.x;
+                clickCoordsY = clickCoords.y;
+
+                menuWidth = menu.offsetWidth + 2;
+                menuHeight = menu.offsetHeight + 2;
+
+                windowWidth = window.innerWidth;
+                windowHeight = window.innerHeight;
+
+                if ((windowWidth - clickCoordsX) < menuWidth) {
+                    menu.style.left = windowWidth - menuWidth + "px";
+                } else {
+                    menu.style.left = clickCoordsX + "px";
+                }
+
+                if ((windowHeight - clickCoordsY) < menuHeight) {
+                    menu.style.top = windowHeight - menuHeight + "px";
+                } else {
+                    menu.style.top = clickCoordsY + "px";
+                }
+            };
+
+
+            //createMenu
+            let ul = document.createElement('ul');
+            ul.id = self.id + 'cm';
+            ul.classList.add('dt-context-menu');
+            ul.innerHTML = createTemplate();
+            document.body.appendChild(ul);
+            self.contextMenu = ul;
+
+            //bind event
+            let contextMenuListener = (e) => {
+                e.preventDefault();
+                positionMenu(e);
+                self._toogleContextMenu(true);
+            };
+            table.addEventListener('contextmenu', contextMenuListener);
+
+            //close menu
+            document.addEventListener('mousedown', e=> {
+                if (!clickInsideElement(e, 'context-li')) {
+                    self._toogleContextMenu(false);
+                }
+            });
+
+            //bind click
+            ul.addEventListener('click', e=> {
+                let li = e.target;
+                if (li.tagName === 'LI') {
+                    let i = li.dataset['i'];
+                    let ic = li.dataset['ic'];
+                    self._toogleContextMenu(false);
+                    if (ic) {
+                        config[i].children[ic].fn && config[i].children[ic].fn();
+                    } else {
+                        config[i].fn && config[i].fn();
+                    }
+                }
+            })
+        }
+
+        _bindSelection() {
             let self = this,
                 table = self.element,
                 path = [],
@@ -72,7 +188,7 @@
                         return --n;
                     }
                 },
-                renderPath = (x, y, el) => {
+                renderPath = (x, y) => {
 
                     let startPoint = [self.startX, self.startY];
                     let prePoint = path[path.length - 1];
@@ -111,20 +227,20 @@
                                 removeColumn();
                             }
                         } else {
-                            if(absCurCoord[1] < absPreCoord[1]){
-                               removeRow();
+                            if (absCurCoord[1] < absPreCoord[1]) {
+                                removeRow();
                                 self.addSelectedClassByPoint(
                                     curPoint,
-                                    reserveCoordinate(startPoint,[addOne(preCoord[0]),0])
+                                    reserveCoordinate(startPoint, [addOne(preCoord[0]), 0])
                                 )
-                            }else{
+                            } else {
                                 self.removeSelectedClassByPoint(
                                     prePoint,
-                                    reserveCoordinate(startPoint,[addOne(curCoord[0]),0])
+                                    reserveCoordinate(startPoint, [addOne(curCoord[0]), 0])
                                 );
                                 self.addSelectedClassByPoint(
                                     curPoint,
-                                    reserveCoordinate(startPoint,[0,addOne(preCoord[1])])
+                                    reserveCoordinate(startPoint, [0, addOne(preCoord[1])])
                                 );
                             }
                         }
@@ -138,17 +254,18 @@
                 },
                 mouseMove = e=> {
                     if (e.target.tagName === 'TD') {
+                        e.preventDefault();
                         let movedTd = e.target,
                             lastPath = path[path.length - 1],
                             x = movedTd.cellIndex,
                             y = movedTd.parentElement.rowIndex;
                         if (lastPath[0] !== x || lastPath[1] !== y) {
-                            renderPath(x, y, movedTd);
+                            renderPath(x, y);
                         }
                     }
                 },
                 mousedown = e => {
-                    if (e.target.tagName === 'TD') {
+                    if (e.target.tagName === 'TD' && e.button === 0) {
                         this.clearSelected();
                         let td = e.target;
                         self.startX = td.cellIndex;
@@ -168,9 +285,7 @@
                 };
 
             table.addEventListener('mousedown', mousedown);
-
         }
-
 
         _createTable() {
             let t = document.createElement('table');
@@ -216,6 +331,60 @@
             }
         }
 
+        _toogleContextMenu(type) {
+            if (this.contextMenu) {
+                this.contextMenu.classList.toggle('show', type)
+            }
+        }
+
+        _getContextMenuConfig() {
+            return [
+                {
+                    name: 'Merge cells',
+                    icon: 'copy',
+                    fn: () => {
+                        alert(1);
+                    }
+                },
+                {
+                    name: 'Copy',
+                    icon: 'copy'
+                },
+                {
+                    name: 'Paste',
+                    icon: 'paste'
+                },
+                {
+                    name: 'Parent',
+                    icon: 'parent',
+                    children: [
+                        {
+                            name: 'child'
+                        }
+                    ]
+                }]
+        }
+
+        getPosition(e) {
+            let posx = 0;
+            let posy = 0;
+
+            if (!e)  e = window.event;
+
+            if (e.pageX || e.pageY) {
+                posx = e.pageX;
+                posy = e.pageY;
+            } else if (e.clientX || e.clientY) {
+                posx = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+                posy = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+            }
+
+            return {
+                x: posx,
+                y: posy
+            }
+        }
+
         addSelectedClassByPoint(a, b) {
             this._handleSelectedClassByPoint('add', a, b);
         }
@@ -254,6 +423,10 @@
 
         addSelectedClass(el) {
             el.classList.add(SelectedTD);
+        }
+
+        destroy() {
+            document.querySelectorAll('.dt-context-menu').forEach(item => item.remove());
         }
 
         logOption() {
