@@ -158,9 +158,9 @@
                     let ic = li.dataset['ic'];
                     self._toogleContextMenu(false);
                     if (ic) {
-                        config[i].children[ic].fn && config[i].children[ic].fn();
+                        config[i].children[ic].fn && config[i].children[ic].fn(e);
                     } else {
-                        config[i].fn && config[i].fn();
+                        config[i].fn && config[i].fn(e);
                     }
                 }
             })
@@ -257,8 +257,12 @@
                         e.preventDefault();
                         let movedTd = e.target,
                             lastPath = path[path.length - 1],
-                            x = movedTd.cellIndex,
-                            y = movedTd.parentElement.rowIndex;
+                            x = movedTd.cellIndex + movedTd.colSpan,
+                            y = movedTd.parentElement.rowIndex + movedTd.rowSpan;
+
+                        self.endX = x;
+                        self.endY = y;
+
                         if (lastPath[0] !== x || lastPath[1] !== y) {
                             renderPath(x, y);
                         }
@@ -267,12 +271,14 @@
                 mousedown = e => {
                     if (e.target.tagName === 'TD' && e.button === 0) {
                         this.clearSelected();
+                        this.clearStart();
                         let td = e.target;
                         self.startX = td.cellIndex;
                         self.startY = td.parentElement.rowIndex;
                         path.length = 0;
                         path.push([self.startX, self.startY]);
                         self.addSelectedClass(td);
+                        td.classList.add('start');
 
                         table.addEventListener('mousemove', mouseMove);
 
@@ -318,15 +324,10 @@
                 'add': 'addSelectedClass',
                 'remove': 'removeSelectedClass'
             };
-            console.log([a, b] + '');
             let [start,end] = this._calPoint(a, b);
-            console.log([start, end] + '');
-            console.log('----------');
-            let trs = this.getAllRows();
             for (let i = start[1], ii = end[1] + 1; i < ii; i++) {
-                let tds = this.getAllTdsByRow(trs[i]);
                 for (let j = start[0], jj = end[0] + 1; j < jj; j++) {
-                    this[handlers[type]](tds[j]);
+                    this[handlers[type]](this.getTdByPoint(j, i));
                 }
             }
         }
@@ -342,8 +343,8 @@
                 {
                     name: 'Merge cells',
                     icon: 'copy',
-                    fn: () => {
-                        alert(1);
+                    fn: (e) => {
+                        this.mergeCells(e);
                     }
                 },
                 {
@@ -363,6 +364,21 @@
                         }
                     ]
                 }]
+        }
+
+        mergeCells() {
+            let [startPoint , endPoint] = this._calPoint([this.startX, this.startY], [this.endX, this.endY]);
+
+            let startTd = this.getTdByPoint(startPoint[0], startPoint[1]);
+            startTd.colSpan = endPoint[0] - startPoint[0] + 1;
+            startTd.rowSpan = endPoint[1] - startPoint[1] + 1;
+
+            for (let i = startPoint[1], ii = endPoint[1]; i <= ii; i++) {
+                for(let j = startPoint[0],jj = endPoint[0]; j <= jj; j++){
+                    this.getTdByPoint(j,i).style.display = 'none';
+                }
+            }
+            startTd.style.display = 'table-cell';
         }
 
         getPosition(e) {
@@ -401,24 +417,13 @@
             this.element.querySelectorAll(SelectedTDSeletor).forEach(item => item.classList.remove(SelectedTD));
         }
 
-        getPreRowsTd(el, nth) {
-            return el.parentNode.previousSibling.querySelector('td:nth-child(' + (nth + 1) + ')');
+        clearStart() {
+            this.element.querySelectorAll('.start').forEach(item => item.classList.remove('start'));
+
         }
 
-        getNextRowsTd(el, nth) {
-            return el.parentNode.nextSibling.querySelector('td:nth-child(' + (nth + 1) + ')');
-        }
-
-        getRowByIndex(i) {
-            return this.element.querySelectorAll('tr:nth-child(' + i + ')');
-        }
-
-        getAllTdsByRow(tr) {
-            return tr.querySelectorAll('td');
-        }
-
-        getAllRows() {
-            return this.element.querySelectorAll('tr');
+        getTdByPoint(x, y) {
+            return this.element.rows[y].cells[x];
         }
 
         addSelectedClass(el) {

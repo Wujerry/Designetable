@@ -17,8 +17,13 @@ ul,li {
     padding: 0;
 }
 
+
+.designetable td.start {
+    background-color: #295ebc !important;
+}
+
 .designetable .selected {
-    background: rgba(47, 115, 221, 1);
+    background: rgba(84, 146, 221, 0.7);
 }
 
 .dt-context-menu {
