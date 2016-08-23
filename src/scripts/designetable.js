@@ -29,6 +29,8 @@
             this.startY = 0;
             this.endY = 0;
 
+            this._mergedCell = [];
+
             if (this.selector && qe(this.selector)) {
                 this._refresh();
             } else {
@@ -92,11 +94,11 @@
                         let ic = 0;
                         child = '<ul class="child-ul">' +
                             cur.children.reduce((preC, curC)=> {
-                                return preC + `<li data-i="${i}" data-ic="${ic++}">${curC.name}</li>`
+                                return preC + `<li data-i="${i}" data-id="${cur.id || ''}" data-ic="${ic++}">${curC.name}</li>`
                             }, '')
                             + '</ul>'
                     }
-                    return pre + `<li data-i="${i++}" class="context-li">${cur.name}${child}</li>`;
+                    return pre + `<li data-i="${i++}" data-id="${cur.id || ''}" class="context-li">${cur.name}${child}</li>`;
                 }, '');
             };
 
@@ -139,14 +141,14 @@
             let contextMenuListener = (e) => {
                 e.preventDefault();
                 positionMenu(e);
-                self._toogleContextMenu(true);
+                self._toggleContextMenu(true);
             };
             table.addEventListener('contextmenu', contextMenuListener);
 
             //close menu
             document.addEventListener('mousedown', e=> {
                 if (!clickInsideElement(e, 'context-li')) {
-                    self._toogleContextMenu(false);
+                    self._toggleContextMenu(false);
                 }
             });
 
@@ -156,7 +158,7 @@
                 if (li.tagName === 'LI') {
                     let i = li.dataset['i'];
                     let ic = li.dataset['ic'];
-                    self._toogleContextMenu(false);
+                    self._toggleContextMenu(false);
                     if (ic) {
                         config[i].children[ic].fn && config[i].children[ic].fn(e);
                     } else {
@@ -180,6 +182,15 @@
                 reserveCoordinate = (point, coord) => {
                     //return point
                     return [point[0] + coord[0], point[1] - coord[1]];
+                },
+                getPoint = (x, y, td) => {
+                    if (td.colSpan > 1 && x >= self.startX) {
+                        x = x + td.colSpan - 1;
+                    }
+                    if (td.rowSpan > 1 && y >= self.startY) {
+                        y = y + td.rowSpan - 1;
+                    }
+                    return [x, y];
                 },
                 addOne = (n) => {
                     if (n > -1) {
@@ -257,14 +268,15 @@
                         e.preventDefault();
                         let movedTd = e.target,
                             lastPath = path[path.length - 1],
-                            x = movedTd.cellIndex + movedTd.colSpan,
-                            y = movedTd.parentElement.rowIndex + movedTd.rowSpan;
-
-                        self.endX = x;
-                        self.endY = y;
+                            x = movedTd.cellIndex,
+                            y = movedTd.parentElement.rowIndex;
 
                         if (lastPath[0] !== x || lastPath[1] !== y) {
-                            renderPath(x, y);
+
+                            let p = getPoint(x, y, movedTd);
+                            self.endX = p[0];
+                            self.endY = p[1];
+                            renderPath(p[0], p[1]);
                         }
                     }
                 },
@@ -273,8 +285,8 @@
                         this.clearSelected();
                         this.clearStart();
                         let td = e.target;
-                        self.startX = td.cellIndex;
-                        self.startY = td.parentElement.rowIndex;
+                        self.startX = self.endX = td.cellIndex;
+                        self.startY = self.endY = td.parentElement.rowIndex;
                         path.length = 0;
                         path.push([self.startX, self.startY]);
                         self.addSelectedClass(td);
@@ -332,9 +344,20 @@
             }
         }
 
-        _toogleContextMenu(type) {
+        _toggleContextMenu(type) {
             if (this.contextMenu) {
+                if (type) this._BeforeContextMenu();
                 this.contextMenu.classList.toggle('show', type)
+            }
+        }
+
+        _BeforeContextMenu() {
+            if (!this._isMergedCellInsideSelection()) {
+                this.contextMenu.querySelector('[data-id=mc]').style.display = 'none';
+                this.contextMenu.querySelector('[data-id=umc]').style.display = 'block';
+            } else {
+                this.contextMenu.querySelector('[data-id=mc]').style.display = 'block';
+                this.contextMenu.querySelector('[data-id=umc]').style.display = 'none';
             }
         }
 
@@ -342,9 +365,18 @@
             return [
                 {
                     name: 'Merge cells',
+                    id: 'mc',
                     icon: 'copy',
                     fn: (e) => {
                         this.mergeCells(e);
+                    }
+                },
+                {
+                    name: 'UnMerge cells',
+                    id: 'umc',
+                    icon: 'copy',
+                    fn: (e) => {
+                        this.unMergeCells(e);
                     }
                 },
                 {
@@ -366,19 +398,38 @@
                 }]
         }
 
-        mergeCells() {
-            let [startPoint , endPoint] = this._calPoint([this.startX, this.startY], [this.endX, this.endY]);
-
-            let startTd = this.getTdByPoint(startPoint[0], startPoint[1]);
-            startTd.colSpan = endPoint[0] - startPoint[0] + 1;
-            startTd.rowSpan = endPoint[1] - startPoint[1] + 1;
-
-            for (let i = startPoint[1], ii = endPoint[1]; i <= ii; i++) {
-                for(let j = startPoint[0],jj = endPoint[0]; j <= jj; j++){
-                    this.getTdByPoint(j,i).style.display = 'none';
-                }
+        _isMergedCellInsideSelection() {
+            if(this._mergedCell.length){
+                // let s = [Math.max(this.startX,this.endX)];
+                // let e = [Math.]
             }
-            startTd.style.display = 'table-cell';
+            return this._mergedCell.every(item => {
+                return !(item[0] >= this.startX && item[0] <= this.endX && item[1] >= this.startY && item[1] <= this.endY);
+            })
+
+        }
+
+        unMergeCells() {
+
+        }
+
+        mergeCells() {
+            if (this._isMergedCellInsideSelection()) {
+                let [startPoint , endPoint] = this._calPoint([this.startX, this.startY], [this.endX, this.endY]);
+
+                let startTd = this.getTdByPoint(startPoint[0], startPoint[1]);
+                startTd.colSpan = endPoint[0] - startPoint[0] + 1;
+                startTd.rowSpan = endPoint[1] - startPoint[1] + 1;
+
+                for (let i = startPoint[1], ii = endPoint[1]; i <= ii; i++) {
+                    for (let j = startPoint[0], jj = endPoint[0]; j <= jj; j++) {
+                        this.getTdByPoint(j, i).style.display = 'none';
+                    }
+                }
+                startTd.style.display = 'table-cell';
+
+                this._mergedCell.push([this.startX, this.startY]);
+            }
         }
 
         getPosition(e) {
