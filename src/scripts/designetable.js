@@ -61,6 +61,27 @@
 
         _bindDragSize() {
 
+            let appendLine = (e,type) => {
+                debugger;
+                let line = document.createElement('div');
+                line.classList.add(`dt-line-${type}`);
+
+                if(type === 'v'){
+
+                }
+
+                this.element.appendChild(line);
+                return line;
+            };
+
+            this.element.addEventListener('mousedown', e => {
+                let el = e.target;
+                if (el.classList.contains('v')) {
+                    let line = appendLine(e,'v');
+                } else if (el.classList.contains('h')) {
+
+                }
+            })
         }
 
         _bindContextMenu() {
@@ -318,7 +339,7 @@
         }
 
         _createEls(tagName = 'td', num = 1) {
-            return new Array(num).fill(0).map(item => `<${tagName}><${tagName}/>`);
+            return new Array(num).fill(0).map(item => `<${tagName}><span class="v"></span><span class="h"></span></${tagName}>`);
         }
 
         _createRows(colNum, rowNum = 1) {
@@ -399,22 +420,43 @@
         }
 
         _isMergedCellInsideSelection() {
-            if(this._mergedCell.length){
+            if (this._mergedCell.length) {
                 // let s = [Math.max(this.startX,this.endX)];
                 // let e = [Math.]
             }
             return this._mergedCell.every(item => {
-                return !(item[0] >= this.startX && item[0] <= this.endX && item[1] >= this.startY && item[1] <= this.endY);
+                return !(this._isCellInSelection(item));
             })
 
         }
 
-        unMergeCells() {
+        _isCellInSelection(point) {
+            return point[0] >= this.startX && point[0] <= this.endX && point[1] >= this.startY && point[1] <= this.endY;
+        }
 
+        unMergeCells() {
+            let rest = [];
+            this._mergedCell.filter(cell => {
+                if (this._isCellInSelection(cell)) {
+                    return true;
+                } else {
+                    rest.push(cell);
+                    return false;
+                }
+            }).forEach(cell => {
+                let td = this.getTdByPoint(cell[0], cell[1]);
+                for (let i = cell[1], ii = i + td.rowSpan; i < ii; i++) {
+                    for (let j = cell[0], jj = j + td.colSpan; j < jj; j++) {
+                        this.getTdByPoint(j, i).style.display = 'table-cell';
+                    }
+                }
+                td.rowSpan = td.colSpan = 1;
+            });
+            this._mergedCell = rest;
         }
 
         mergeCells() {
-            if (this._isMergedCellInsideSelection()) {
+            if (this._isMergedCellInsideSelection() && !this.isEqualPoint()) {
                 let [startPoint , endPoint] = this._calPoint([this.startX, this.startY], [this.endX, this.endY]);
 
                 let startTd = this.getTdByPoint(startPoint[0], startPoint[1]);
@@ -429,6 +471,14 @@
                 startTd.style.display = 'table-cell';
 
                 this._mergedCell.push([this.startX, this.startY]);
+            }
+        }
+
+        isEqualPoint(a, b) {
+            if (a && b && a[0] === b[0] && a[1] === b[1]) {
+                return true;
+            } else {
+                return this.startX === this.endX && this.startY === this.endY;
             }
         }
 
@@ -474,7 +524,11 @@
         }
 
         getTdByPoint(x, y) {
-            return this.element.rows[y].cells[x];
+            if (this.element.rows[y]) {
+                return this.element.rows[y].cells[x];
+            } else {
+                return this.element;
+            }
         }
 
         addSelectedClass(el) {

@@ -8,13 +8,45 @@ ul,li {
 
 .designetable {
     border-collapse: collapse;
+    user-select: none;
 }
 
 .designetable td {
+    position: relative;
     height: 30px;
     width: 50px;
     border: 1px solid rgba(0, 0, 0, 1);
     padding: 0;
+}
+
+.designetable td .v{
+    position: absolute;
+    background: red;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+}
+
+.designetable td .v:hover {
+    cursor: col-resize;
+}
+
+.designetable td .h:hover{
+    cursor: row-resize;
+}
+
+.designetable td .h {
+    position: absolute;
+    background: red;
+    left:0;
+    right:0;
+    bottom: 0;
+    height: 2px;
+}
+
+.designetable td  {
+    text-align: center;
 }
 
 
@@ -32,9 +64,11 @@ ul,li {
     top: 0;
     left:0;
     background: #f7f5f2;
-    -webkit-box-shadow: 0px 1px 1px 0px rgba(0,0,0,0.75);
-    -moz-box-shadow: 0px 1px 1px 0px rgba(0,0,0,0.75);
-    box-shadow: 0px 1px 1px 0px rgba(0,0,0,0.75);
+    -webkit-box-shadow: 0 1px 1px 0 rgba(0,0,0,0.75);
+    -moz-box-shadow: 0 1px 1px 0 rgba(0,0,0,0.75);
+    box-shadow: 0 1px 1px 0 rgba(0,0,0,0.75);
+
+    z-index: 1000;
 }
 
 .dt-context-menu.show {
@@ -64,13 +98,29 @@ ul,li {
     top: 0;
     right: -130px;
     background: #f7f5f2;
-    -webkit-box-shadow: 0px 1px 1px 0px rgba(0,0,0,0.75);
-    -moz-box-shadow: 0px 1px 1px 0px rgba(0,0,0,0.75);
-    box-shadow: 0px 1px 1px 0px rgba(0,0,0,0.75);
+    -webkit-box-shadow: 0 1px 1px 0 rgba(0,0,0,0.75);
+    -moz-box-shadow: 0 1px 1px 0 rgba(0,0,0,0.75);
+    box-shadow: 0 1px 1px 0 rgba(0,0,0,0.75);
 }
 
 .dt-context-menu li:hover .child-ul{
     display: block;
+}
+
+.dt-line-v {
+    position: absolute;
+    top:0;
+    bottom: 0;
+    width:1px;
+    border-left: 1px dashed black;
+}
+
+.dt-line-h {
+    position: absolute;
+    left: 0;
+    right:0;
+    height:1px;
+    border-left: 1px dashed black;
 }
 
 
