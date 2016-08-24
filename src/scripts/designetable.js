@@ -61,7 +61,7 @@
 
         _bindDragSize() {
 
-            let el, line, rect, type, originLine,elWidth,elHeight,originX,originY,
+            let el, line, rect, type, originLine, elWidth, elHeight, originX, originY,
                 appendLine = (e, type, rect) => {
                     let line = document.createElement('div'),
                         originLine = document.createElement('div');
@@ -85,41 +85,41 @@
                     if (type === 'v') {
                         let width = elWidth + (parseInt(line.style.left) - parseInt(originLine.style.left)) + 'px';
                         let index = el.parentElement.cellIndex;
-                        for(let i = 0,ii = this.element.rows.length; i < ii; i++){
+                        for (let i = 0, ii = this.element.rows.length; i < ii; i++) {
                             this.element.rows[i].cells[index].style.width = width;
                         }
-                    }else{
+                    } else {
                         let height = elHeight + (parseInt(line.style.top) - parseInt(originLine.style.top)) + 'px';
                         let row = el.parentElement.parentElement;
-                        for(let i = 0,ii = row.cells.length; i < ii; i++){
+                        for (let i = 0, ii = row.cells.length; i < ii; i++) {
                             row.cells[i].style.height = height;
                         }
                     }
                 },
                 mouseMove = e => {
                     if (type === 'v') {
-                        if(originX < e.clientX ||  originX - e.clientX < elWidth){
+                        if (originX < e.clientX || originX - e.clientX < elWidth) {
                             line.style.left = e.clientX - rect.left + 'px';
-                        }else{
-                            line.style.left = originX - elWidth -rect.left + 1 + 'px';
+                        } else {
+                            line.style.left = originX - elWidth - rect.left + 1 + 'px';
                         }
                     } else {
-                        if(originY < e.clientY ||  originY - e.clientY < elHeight ){
+                        if (originY < e.clientY || originY - e.clientY < elHeight) {
                             line.style.top = e.clientY - rect.top + 'px';
-                        }else{
-                            line.style.top = originY - elHeight -rect.top + 1 + 'px';
+                        } else {
+                            line.style.top = originY - elHeight - rect.top + 1 + 'px';
                         }
                     }
                 },
-                mouseUp = e=>{
+                mouseUp = e=> {
                     this.element.removeEventListener('mousemove', mouseMove, false);
-                    document.removeEventListener('mouseup',mouseUp,false);
+                    document.removeEventListener('mouseup', mouseUp, false);
                     changeEffect(e);
                     line.remove();
                     originLine.remove();
                 },
                 mouseDown = e => {
-                    if(e.target.tagName === 'SPAN'){
+                    if (e.target.tagName === 'SPAN') {
                         el = e.target;
                         rect = this.element.getBoundingClientRect();
 
@@ -127,11 +127,11 @@
                         if (el.classList.contains('v') && e.button === 0) {
                             type = 'v';
                             originX = e.clientX;
-                            elWidth = parseInt(this.getComputedStyle(el.parentElement,'width'));
+                            elWidth = parseInt(this.getComputedStyle(el.parentElement, 'width'));
                         } else if (el.classList.contains('h')) {
                             type = 'h';
                             originY = e.clientY;
-                            elHeight = parseInt(this.getComputedStyle(el.parentElement,'height'));
+                            elHeight = parseInt(this.getComputedStyle(el.parentElement, 'height'));
                         }
 
                         let r = appendLine(e, type, rect);
@@ -367,7 +367,7 @@
                 },
                 mouseUp = ()=> {
                     table.removeEventListener('mousemove', mouseMove, false);
-                    document.removeEventListener('mouseup',mouseUp);
+                    document.removeEventListener('mouseup', mouseUp);
                 },
                 mousedown = e => {
                     if (e.target.tagName === 'TD' && e.button === 0) {
@@ -500,8 +500,8 @@
             return point[0] >= this.startX && point[0] <= this.endX && point[1] >= this.startY && point[1] <= this.endY;
         }
 
-        getComputedStyle(el,prop) {
-            return window.getComputedStyle(el,null).getPropertyValue(prop);
+        getComputedStyle(el, prop) {
+            return window.getComputedStyle(el, null).getPropertyValue(prop);
         }
 
         unMergeCells() {
@@ -545,8 +545,8 @@
         }
 
         isEqualPoint(a, b) {
-            if (a && b && a[0] === b[0] && a[1] === b[1]) {
-                return true;
+            if (a && b) {
+                return !!(a[0] === b[0] && a[1] === b[1]);
             } else {
                 return this.startX === this.endX && this.startY === this.endY;
             }
