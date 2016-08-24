@@ -61,27 +61,91 @@
 
         _bindDragSize() {
 
-            let appendLine = (e,type) => {
-                debugger;
-                let line = document.createElement('div');
-                line.classList.add(`dt-line-${type}`);
+            let el, line, rect, type, originLine,elWidth,elHeight,originX,originY,
+                appendLine = (e, type, rect) => {
+                    let line = document.createElement('div'),
+                        originLine = document.createElement('div');
+                    line.classList.add(`dt-line-${type}`);
+                    originLine.classList.add(`dt-line-${type}-origin`);
 
-                if(type === 'v'){
+                    if (type === 'v') {
+                        line.style.left = e.clientX - rect.left + 'px';
+                        originLine.style.left = e.clientX - rect.left + 'px';
+                    } else {
+                        line.style.top = e.clientY - rect.top + 'px';
+                        originLine.style.top = e.clientY - rect.top + 'px';
+                    }
 
-                }
+                    this.element.appendChild(line);
+                    this.element.appendChild(originLine);
 
-                this.element.appendChild(line);
-                return line;
-            };
+                    return [line, originLine];
+                },
+                changeEffect = () => {
+                    if (type === 'v') {
+                        let width = elWidth + (parseInt(line.style.left) - parseInt(originLine.style.left)) + 'px';
+                        let index = el.parentElement.cellIndex;
+                        for(let i = 0,ii = this.element.rows.length; i < ii; i++){
+                            this.element.rows[i].cells[index].style.width = width;
+                        }
+                    }else{
+                        let height = elHeight + (parseInt(line.style.top) - parseInt(originLine.style.top)) + 'px';
+                        let row = el.parentElement.parentElement;
+                        for(let i = 0,ii = row.cells.length; i < ii; i++){
+                            row.cells[i].style.height = height;
+                        }
+                    }
+                },
+                mouseMove = e => {
+                    if (type === 'v') {
+                        if(originX < e.clientX ||  originX - e.clientX < elWidth){
+                            line.style.left = e.clientX - rect.left + 'px';
+                        }else{
+                            line.style.left = originX - elWidth -rect.left + 1 + 'px';
+                        }
+                    } else {
+                        if(originY < e.clientY ||  originY - e.clientY < elHeight ){
+                            line.style.top = e.clientY - rect.top + 'px';
+                        }else{
+                            line.style.top = originY - elHeight -rect.top + 1 + 'px';
+                        }
+                    }
+                },
+                mouseUp = e=>{
+                    this.element.removeEventListener('mousemove', mouseMove, false);
+                    document.removeEventListener('mouseup',mouseUp,false);
+                    changeEffect(e);
+                    line.remove();
+                    originLine.remove();
+                },
+                mouseDown = e => {
+                    if(e.target.tagName === 'SPAN'){
+                        el = e.target;
+                        rect = this.element.getBoundingClientRect();
 
-            this.element.addEventListener('mousedown', e => {
-                let el = e.target;
-                if (el.classList.contains('v')) {
-                    let line = appendLine(e,'v');
-                } else if (el.classList.contains('h')) {
 
-                }
-            })
+                        if (el.classList.contains('v') && e.button === 0) {
+                            type = 'v';
+                            originX = e.clientX;
+                            elWidth = parseInt(this.getComputedStyle(el.parentElement,'width'));
+                        } else if (el.classList.contains('h')) {
+                            type = 'h';
+                            originY = e.clientY;
+                            elHeight = parseInt(this.getComputedStyle(el.parentElement,'height'));
+                        }
+
+                        let r = appendLine(e, type, rect);
+                        line = r[0];
+                        originLine = r[1];
+
+                        this.element.addEventListener('mousemove', mouseMove);
+
+                        //noinspection JSCheckFunctionSignatures
+                        document.addEventListener('mouseup', mouseUp);
+                    }
+                };
+
+            this.element.addEventListener('mousedown', mouseDown);
         }
 
         _bindContextMenu() {
@@ -301,6 +365,10 @@
                         }
                     }
                 },
+                mouseUp = ()=> {
+                    table.removeEventListener('mousemove', mouseMove, false);
+                    document.removeEventListener('mouseup',mouseUp);
+                },
                 mousedown = e => {
                     if (e.target.tagName === 'TD' && e.button === 0) {
                         this.clearSelected();
@@ -316,9 +384,7 @@
                         table.addEventListener('mousemove', mouseMove);
 
                         //noinspection JSCheckFunctionSignatures
-                        document.addEventListener('mouseup', ()=> {
-                            table.removeEventListener('mousemove', mouseMove, false);
-                        }, {once: true})
+                        document.addEventListener('mouseup', mouseUp)
 
                     }
                 };
@@ -434,6 +500,10 @@
             return point[0] >= this.startX && point[0] <= this.endX && point[1] >= this.startY && point[1] <= this.endY;
         }
 
+        getComputedStyle(el,prop) {
+            return window.getComputedStyle(el,null).getPropertyValue(prop);
+        }
+
         unMergeCells() {
             let rest = [];
             this._mergedCell.filter(cell => {
@@ -470,7 +540,7 @@
                 }
                 startTd.style.display = 'table-cell';
 
-                this._mergedCell.push([this.startX, this.startY]);
+                this._mergedCell.push([startPoint[0], startPoint[1]]);
             }
         }
 

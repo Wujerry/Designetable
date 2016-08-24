@@ -9,6 +9,7 @@ ul,li {
 .designetable {
     border-collapse: collapse;
     user-select: none;
+    position: relative;
 }
 
 .designetable td {
@@ -21,7 +22,7 @@ ul,li {
 
 .designetable td .v{
     position: absolute;
-    background: red;
+    /*background: red;*/
     right: 0;
     top: 0;
     bottom: 0;
@@ -38,7 +39,7 @@ ul,li {
 
 .designetable td .h {
     position: absolute;
-    background: red;
+    /*background: red;*/
     left:0;
     right:0;
     bottom: 0;
@@ -115,12 +116,28 @@ ul,li {
     border-left: 1px dashed black;
 }
 
+.dt-line-v-origin {
+    position: absolute;
+    top:0;
+    bottom: 0;
+    width:1px;
+    border-left: 2px solid black;
+}
+
 .dt-line-h {
     position: absolute;
     left: 0;
     right:0;
     height:1px;
-    border-left: 1px dashed black;
+    border-top: 1px dashed black;
+}
+
+.dt-line-h-origin {
+    position: absolute;
+    left: 0;
+    right:0;
+    height:1px;
+    border-top: 2px solid black;
 }
 
 
