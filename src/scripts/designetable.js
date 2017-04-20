@@ -201,15 +201,15 @@
                 windowHeight = window.innerHeight;
 
                 if ((windowWidth - clickCoordsX) < menuWidth) {
-                    menu.style.left = windowWidth - menuWidth + "px";
+                    menu.style.left = windowWidth - menuWidth + 'px';
                 } else {
-                    menu.style.left = clickCoordsX + "px";
+                    menu.style.left = clickCoordsX + 'px';
                 }
 
                 if ((windowHeight - clickCoordsY) < menuHeight) {
-                    menu.style.top = windowHeight - menuHeight + "px";
+                    menu.style.top = windowHeight - menuHeight + 'px';
                 } else {
-                    menu.style.top = clickCoordsY + "px";
+                    menu.style.top = clickCoordsY + 'px';
                 }
             };
 
