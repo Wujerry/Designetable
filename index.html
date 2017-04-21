@@ -75,9 +75,10 @@
 
     <script type="text/javascript" src="javascripts/designetable.min.js"></script>
     <script>
-       var  dt = new Designetable('#demo', {
+       var  dt = new Designetable(null, {
             rows: 20,
-            columns: 20
+            columns: 20,
+            renderTo: '#demo'
         });
         dt.logOption();
     </script>
